@@ -30,9 +30,7 @@ system_prep() {
 
 setup_time_sync() {
   info "Ensuring system time is synchronized..."
-  # systemd-timesyncd is standard on Ubuntu, but we install just in case of a minimal image.
   sudo apt-get install -y systemd-timesyncd
-  # Enable and start the service immediately.
   sudo systemctl enable --now systemd-timesyncd
   info "Time synchronization service (systemd-timesyncd) is active."
 }
@@ -99,11 +97,7 @@ setup_zsh() {
   else
     echo -e "  -> ${YELLOW}Oh My Zsh is already installed. Skipping.${RESET}"
   fi
-
-  # --- Zsh Plugin Installations ---
-  local plugin_path # Declare local variable once
-
-  # Install zsh-history-substring-search plugin
+  local plugin_path
   plugin_path="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-history-substring-search"
   if [ ! -d "$plugin_path" ]; then
     echo "  -> Installing zsh-history-substring-search plugin..."
@@ -111,8 +105,6 @@ setup_zsh() {
   else
     echo -e "  -> ${YELLOW}zsh-history-substring-search plugin is already installed. Skipping.${RESET}"
   fi
-
-  # Install zsh-syntax-highlighting plugin
   plugin_path="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
   if [ ! -d "$plugin_path" ]; then
     echo "  -> Installing zsh-syntax-highlighting plugin..."
@@ -135,26 +127,20 @@ setup_tmux() {
 
 install_tmux_plugins() {
     info "Installing Tmux plugins..."
-    # Start a temporary, detached tmux server to run the installer script
-    # This prevents errors if the script is run outside of a tmux session
-    tmux start-server
-    # The installer script requires the TMUX environment variable to be set
-    TMUX='' "$HOME/.tmux/plugins/tpm/bin/install_plugins"
-    tmux kill-server
+    # The install_plugins script is smart enough to start a temporary server
+    # if one isn't running. We just need to execute it directly.
+    "$HOME/.tmux/plugins/tpm/bin/install_plugins"
 }
 
 setup_python() {
   info "Setting up Python environment..."
   sudo apt-get install -y python3-pip python3-venv
-
   if [ ! -d "$HOME/.venv" ]; then
     echo "  -> Creating global Python virtual environment in ~/.venv..."
     python3 -m venv "$HOME/.venv"
   else
     echo -e "  -> ${YELLOW}Global virtual environment ~/.venv already exists. Skipping creation.${RESET}"
   fi
-
-  # Install packages from requirements.txt
   local req_file="$SCRIPT_DIR/requirements.txt"
   if [ -f "$req_file" ]; then
     echo "  -> Installing Python packages from requirements.txt..."
@@ -167,22 +153,16 @@ setup_python() {
 
 deploy_dotfiles() {
   info "Deploying dotfiles from repository..."
-
-  # A list of dotfiles to link
   local dotfiles=(".zshrc" ".tmux.conf")
-
   for file in "${dotfiles[@]}"; do
     local source_file="$SCRIPT_DIR/$file"
     local dest_file="$HOME/$file"
-
     if [ -f "$source_file" ]; then
       echo "  -> Processing $file..."
-      # If the destination file exists, create a backup
-      if [ -e "$dest_file" ]; then
+      if [ -L "$dest_file" ] || [ -f "$dest_file" ]; then
         echo "     - Backing up existing $file to ${file}.bak"
         mv "$dest_file" "${dest_file}.bak"
       fi
-      # Create the symbolic link
       echo "     - Creating symlink for $file"
       ln -s "$source_file" "$dest_file"
     else
