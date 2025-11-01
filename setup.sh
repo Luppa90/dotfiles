@@ -125,11 +125,31 @@ setup_tmux() {
   fi
 }
 
+# Final corrected function
 install_tmux_plugins() {
     info "Installing Tmux plugins..."
-    # The install_plugins script is smart enough to start a temporary server
-    # if one isn't running. We just need to execute it directly.
+    
+    # Verify .tmux.conf exists before proceeding
+    if [ ! -f "$HOME/.tmux.conf" ]; then
+        echo -e "  -> ${YELLOW}.tmux.conf not found. Skipping plugin installation.${RESET}"
+        return
+    fi
+    
+    # Start the tmux server without attaching to it
+    tmux start-server
+    
+    # Source the configuration file in the running server.
+    # This is the crucial step that sets up the TPM environment.
+    tmux source-file "$HOME/.tmux.conf"
+    
+    # Give tmux a moment to process the configuration
+    sleep 1
+    
+    # Now, execute the installer. It will find the correctly configured server.
     "$HOME/.tmux/plugins/tpm/bin/install_plugins"
+    
+    # Stop the server after we're done.
+    tmux kill-server
 }
 
 setup_python() {
