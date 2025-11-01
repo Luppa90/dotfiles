@@ -93,7 +93,6 @@ install_github_cli() {
 
 setup_zsh() {
   info "Setting up Zsh and Oh My Zsh..."
-  # Install Oh My Zsh non-interactively
   if [ ! -d "$HOME/.oh-my-zsh" ]; then
     echo "  -> Installing Oh My Zsh..."
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
@@ -101,14 +100,47 @@ setup_zsh() {
     echo -e "  -> ${YELLOW}Oh My Zsh is already installed. Skipping.${RESET}"
   fi
 
+  # --- Zsh Plugin Installations ---
+  local plugin_path # Declare local variable once
+
   # Install zsh-history-substring-search plugin
-  local plugin_path="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-history-substring-search"
+  plugin_path="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-history-substring-search"
   if [ ! -d "$plugin_path" ]; then
     echo "  -> Installing zsh-history-substring-search plugin..."
     git clone https://github.com/zsh-users/zsh-history-substring-search.git "$plugin_path"
   else
     echo -e "  -> ${YELLOW}zsh-history-substring-search plugin is already installed. Skipping.${RESET}"
   fi
+
+  # Install zsh-syntax-highlighting plugin
+  plugin_path="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
+  if [ ! -d "$plugin_path" ]; then
+    echo "  -> Installing zsh-syntax-highlighting plugin..."
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$plugin_path"
+  else
+    echo -e "  -> ${YELLOW}zsh-syntax-highlighting plugin is already installed. Skipping.${RESET}"
+  fi
+}
+
+setup_tmux() {
+  info "Setting up Tmux Plugin Manager (TPM)..."
+  local tpm_path="$HOME/.tmux/plugins/tpm"
+  if [ ! -d "$tpm_path" ]; then
+    echo "  -> Installing TPM..."
+    git clone https://github.com/tmux-plugins/tpm "$tpm_path"
+  else
+    echo -e "  -> ${YELLOW}TPM is already installed. Skipping.${RESET}"
+  fi
+}
+
+install_tmux_plugins() {
+    info "Installing Tmux plugins..."
+    # Start a temporary, detached tmux server to run the installer script
+    # This prevents errors if the script is run outside of a tmux session
+    tmux start-server
+    # The installer script requires the TMUX environment variable to be set
+    TMUX='' "$HOME/.tmux/plugins/tpm/bin/install_plugins"
+    tmux kill-server
 }
 
 setup_python() {
@@ -163,26 +195,30 @@ deploy_dotfiles() {
 
 main() {
   info "Starting new server setup..."
-
+  
   system_prep
   setup_time_sync
   install_terminal_tools
   install_docker
   install_github_cli
   setup_zsh
+  setup_tmux
   setup_python
+  
   deploy_dotfiles
+
+  install_tmux_plugins
 
   info "Automated setup complete. The following requires manual interaction."
   echo -e "${YELLOW}--> Please follow the prompts to log in to GitHub CLI...${RESET}"
   gh auth login
-
+  
   echo -e "${YELLOW}--> Please follow the prompts to log in to Docker...${RESET}"
-docker login
+  docker login
 
   info "Setting Zsh as the default shell..."
   sudo chsh -s "$(which zsh)" "$USER"
-
+  
   info "${GREEN}Setup is complete!${RESET}"
   echo -e "${YELLOW}Please log out and log back in for all changes to take full effect.${RESET}"
 }
