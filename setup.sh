@@ -28,6 +28,15 @@ system_prep() {
   sudo apt-get install -y git curl build-essential ca-certificates
 }
 
+setup_time_sync() {
+  info "Ensuring system time is synchronized..."
+  # systemd-timesyncd is standard on Ubuntu, but we install just in case of a minimal image.
+  sudo apt-get install -y systemd-timesyncd
+  # Enable and start the service immediately.
+  sudo systemctl enable --now systemd-timesyncd
+  info "Time synchronization service (systemd-timesyncd) is active."
+}
+
 install_terminal_tools() {
   info "Installing terminal tools (Zsh, Tmux, Micro)..."
   if ! command -v zsh &> /dev/null; then
@@ -133,7 +142,7 @@ deploy_dotfiles() {
   for file in "${dotfiles[@]}"; do
     local source_file="$SCRIPT_DIR/$file"
     local dest_file="$HOME/$file"
-    
+
     if [ -f "$source_file" ]; then
       echo "  -> Processing $file..."
       # If the destination file exists, create a backup
@@ -154,25 +163,26 @@ deploy_dotfiles() {
 
 main() {
   info "Starting new server setup..."
-  
+
   system_prep
+  setup_time_sync
   install_terminal_tools
   install_docker
   install_github_cli
   setup_zsh
   setup_python
   deploy_dotfiles
-  
+
   info "Automated setup complete. The following requires manual interaction."
   echo -e "${YELLOW}--> Please follow the prompts to log in to GitHub CLI...${RESET}"
   gh auth login
-  
+
   echo -e "${YELLOW}--> Please follow the prompts to log in to Docker...${RESET}"
-  docker login
+docker login
 
   info "Setting Zsh as the default shell..."
   sudo chsh -s "$(which zsh)" "$USER"
-  
+
   info "${GREEN}Setup is complete!${RESET}"
   echo -e "${YELLOW}Please log out and log back in for all changes to take full effect.${RESET}"
 }
