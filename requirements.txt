@@ -1,0 +1,31 @@
+# --- Web & API Framework ---
+fastapi
+uvicorn[standard]  # Using 'standard' installs high-performance extras
+
+# --- Database Stack ---
+sqlalchemy
+alembic
+alembic-postgresql-enum
+psycopg2-binary
+
+# --- Asynchronous Task Queue ---
+celery
+redis
+
+# --- API & HTTP Clients ---
+requests
+httpx
+sonarr-py
+radarr-py
+
+# --- AWS & Cloud Services ---
+boto3
+
+# --- Configuration & Logging ---
+pydantic-settings
+structlog
+python-dotenv
+
+# --- Security & SSH ---
+cryptography
+paramiko
