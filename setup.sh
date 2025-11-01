@@ -126,7 +126,7 @@ setup_tmux() {
 }
 
 # Final corrected function
-install_tmux_plugins() {
+install_tmux_plugins() {  
     info "Installing Tmux plugins..."
     
     # Verify .tmux.conf exists before proceeding
@@ -135,21 +135,21 @@ install_tmux_plugins() {
         return
     fi
     
-    # Start the tmux server without attaching to it
-    tmux start-server
+    # Create a temporary detached session to load the config
+    # This ensures TPM environment variables are set correctly
+    tmux new-session -d -s temp_setup
     
-    # Source the configuration file in the running server.
-    # This is the crucial step that sets up the TPM environment.
-    tmux source-file "$HOME/.tmux.conf"
-    
-    # Give tmux a moment to process the configuration
+    # Give tmux a moment to initialize
     sleep 1
     
-    # Now, execute the installer. It will find the correctly configured server.
-    "$HOME/.tmux/plugins/tpm/bin/install_plugins"
+    # Now execute the installer within the tmux context
+    tmux run-shell "$HOME/.tmux/plugins/tpm/bin/install_plugins"
     
-    # Stop the server after we're done.
-    tmux kill-server
+    # Wait for installation to complete
+    sleep 2
+    
+    # Clean up: kill the temporary session
+    tmux kill-session -t temp_setup 2>/dev/null || true
 }
 
 setup_python() {
