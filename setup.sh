@@ -209,15 +209,31 @@ main() {
 
   install_tmux_plugins
 
-  info "Automated setup complete. The following requires manual interaction."
-  echo -e "${YELLOW}--> Please follow the prompts to log in to GitHub CLI...${RESET}"
-  gh auth login
+  info "Checking authentication status..."
   
-  echo -e "${YELLOW}--> Please follow the prompts to log in to Docker...${RESET}"
-  docker login
+  # Check GitHub CLI authentication
+  if ! gh auth status &> /dev/null; then
+    echo -e "${YELLOW}--> Please follow the prompts to log in to GitHub CLI...${RESET}"
+    gh auth login
+  else
+    echo -e "  -> ${YELLOW}Already logged in to GitHub CLI. Skipping.${RESET}"
+  fi
+  
+  # Check Docker authentication
+  if ! docker info &> /dev/null; then
+    echo -e "${YELLOW}--> Please follow the prompts to log in to Docker...${RESET}"
+    docker login
+  else
+    echo -e "  -> ${YELLOW}Already logged in to Docker. Skipping.${RESET}"
+  fi
 
-  info "Setting Zsh as the default shell..."
-  sudo chsh -s "$(which zsh)" "$USER"
+  # Check if Zsh is already the default shell
+  if [ "$SHELL" != "$(which zsh)" ]; then
+    info "Setting Zsh as the default shell..."
+    sudo chsh -s "$(which zsh)" "$USER"
+  else
+    echo -e "  -> ${YELLOW}Zsh is already the default shell. Skipping.${RESET}"
+  fi
   
   info "${GREEN}Setup is complete!${RESET}"
   echo -e "${YELLOW}Please log out and log back in for all changes to take full effect.${RESET}"
