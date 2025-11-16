@@ -220,11 +220,22 @@ main() {
   fi
   
   # Check Docker authentication
-  if ! docker info &> /dev/null; then
-    echo -e "${YELLOW}--> Please follow the prompts to log in to Docker...${RESET}"
-    docker login
+  # `docker info` succeeds whether or not a registry login exists, so
+  # checking its exit status is not a reliable way to detect auth.
+  # Look for a Username in `docker info` output; if present, assume
+  # the CLI is authenticated. If `docker info` fails (daemon not
+  # running), still offer `docker login` so credentials can be stored
+  # client-side.
+  if docker info >/dev/null 2>&1; then
+    if docker info 2>/dev/null | grep -q 'Username:'; then
+      echo -e "  -> ${YELLOW}Already logged in to Docker. Skipping.${RESET}"
+    else
+      echo -e "${YELLOW}--> Please follow the prompts to log in to Docker...${RESET}"
+      docker login
+    fi
   else
-    echo -e "  -> ${YELLOW}Already logged in to Docker. Skipping.${RESET}"
+    echo -e "${YELLOW}--> Docker daemon not available; attempting `docker login` to store credentials client-side...${RESET}"
+    docker login || echo -e "  -> ${YELLOW}Docker login failed or was cancelled.${RESET}"
   fi
 
   # Check if Zsh is already the default shell
